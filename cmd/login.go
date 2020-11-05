@@ -153,7 +153,37 @@ func (lca loginCmdArgs) validate() error {
 	return nil
 }
 
+func (lca loginCmdArgs) selectArgsFromEnvironment() loginCmdArgs {
+	/*
+	 * Login args can also be supplied from Environent variables.
+	 * We prefer the ones provided through command and fall back to the
+	 * environment var
+	 */
+	if lca.servicePrincipal == false && lca.identity == false {
+		//perform Device login
+		return lca
+	}
+
+	assignIfNotZero := func(dst *string, env common.EnvironmentVariable) {
+		if *dst == "" {
+			*dst = glcm.GetEnvironmentVariable(env)
+		}
+	}
+
+	assignIfNotZero(&lca.applicationID, common.EEnvironmentVariable.ApplicationID())
+	assignIfNotZero(&lca.certPath, common.EEnvironmentVariable.CertificatePath())
+	assignIfNotZero(&lca.certPass, common.EEnvironmentVariable.CertificatePassword())
+	assignIfNotZero(&lca.clientSecret, common.EEnvironmentVariable.ClientSecret())
+	assignIfNotZero(&lca.identityClientID, common.EEnvironmentVariable.ManagedIdentityClientID())
+	assignIfNotZero(&lca.identityObjectID, common.EEnvironmentVariable.ManagedIdentityObjectID())
+	assignIfNotZero(&lca.identityResourceID, common.EEnvironmentVariable.ManagedIdentityResourceString())
+
+	return lca
+}
+
 func (lca loginCmdArgs) process() error {
+
+	lca = lca.selectArgsFromEnvironment()
 	// Validate login parameters.
 	if err := lca.validate(); err != nil {
 		return err
